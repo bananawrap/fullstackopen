@@ -26,6 +26,8 @@ const Part = (props) => {
   )
 }
 
+
+
 const Total = (props) => {
   return (
     <>
