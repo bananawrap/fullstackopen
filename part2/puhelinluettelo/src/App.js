@@ -3,12 +3,15 @@ import axiosService from './services/axiosService';
 import DisplayContacts from './components/DisplayContacts';
 import AddContactForm from "./components/AddContactForm"
 import FilterForm from "./components/FilterForm"
+import { Notification, notificationHandler } from "./components/Notification"
 
 const App = () => {
   const [persons,   setPersons]   = useState([])
   const [newName,   setNewName]   = useState("")
   const [newNumber, setNewNumber] = useState("")
   const [newFilter, setNewFilter] = useState("")
+  const [message, setMessage] = useState(null)
+  const [messageType, setMessageType] = useState("")
 
   useEffect(() => {
     axiosService
@@ -35,7 +38,21 @@ const App = () => {
           setPersons(persons.concat(initialPersons))
           setNewName("")
           setNewNumber("")
+          notificationHandler(
+            "success",
+            `Added ${newName}`,
+            setMessageType,
+            setMessage
+          )
         })
+      .catch(error => {
+        notificationHandler(
+          "error",
+          `An error occured:\n${error}`,
+          setMessageType,
+          setMessage
+        )
+      })
     }
     
     else if (newNumber !== result.number) {
@@ -50,11 +67,32 @@ const App = () => {
             }
             return person
           })      
-          setPersons(updatedPersons)         
-        })}
+          setPersons(updatedPersons)
+          notificationHandler(
+            "success",
+            `Updated ${newName}'s number to: ${newNumber}`,
+            setMessageType,
+            setMessage
+          )
+        })
+        .catch(error => {
+          notificationHandler(
+            "error",
+            `Information of ${newName} has already been removed from server`,
+            setMessageType,
+            setMessage
+          )
+        })
+      }
       }
     else {
-      alert(`${newName} is already added to phonebook`)
+      alert()
+      notificationHandler(
+        "error",
+        `${newName} is already added to phonebook`,
+        setMessageType,
+        setMessage
+      )
     }
   }
 
@@ -82,6 +120,7 @@ const App = () => {
   return (
     <div>
       <h1>Phonebook</h1>
+      <Notification message={message} msgClass={`notification ${messageType}`} />
       <FilterForm text={"filter shown with "} filterValue={newFilter} filterOnChange={handleFilterChange} />
 
       <h1>add a new</h1>
