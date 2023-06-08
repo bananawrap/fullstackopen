@@ -98,7 +98,7 @@ const App = () => {
 
   const deleteContact = (id) => {
     axiosService.deleteById(id)
-      .then(() => setPersons(persons.filter(person => person.id !== id))
+      .then(() => setPersons(persons.filter(person => person.id !== id)))
       .catch(error => {
         notificationHandler(
           "error",
@@ -107,7 +107,6 @@ const App = () => {
           setMessage
         )
       })
-  )
   }
 
   const isInArray = (array, value) => array.findIndex(element => element.trim().toUpperCase() === value.trim().toUpperCase())
