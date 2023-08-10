@@ -9,14 +9,19 @@ blogsRouter.get('/', async (request, response) => {
 blogsRouter.post('/', async (request, response) => {
   const body = new Blog(request.body)
 
+  const user = User.findById(body.userId)
+
   const blog = new Blog({
     title: body.title,
     author: body.author,
-    url: body.url
+    url: body.url,
+    user: user._id
   })
   const savedBlog = await blog.save()
+  user.blogs = user.notes.concat(savedBlog._id)
+  await user.save()
   response.status(201).json(savedBlog)
-    
+
 })
 
 blogsRouter.delete('/:id', async (request, response) => {
