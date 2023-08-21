@@ -6,20 +6,27 @@ const cors = require('cors')
 const app = express()
 const blogsRouter = require('./controllers/blogs')
 const userRouter = require('./controllers/users')
+const loginRouter = require('./controllers/login')
+const logger = require('./utils/logger')
 const mongoose = require('mongoose')
+const middleware = require('./utils/middleware')
 
-
-console.log(process.env.MONGODB_URI)
+console.log('running on test db: ', process.env.NODE_ENV === 'test')
 const mongoUrl = process.env.NODE_ENV === 'test'
-  ? process.env.TEST_MONGODB_URI
-  : process.env.MONGODB_URI
+  ? process.env.TEST_MONGODB_URL
+  : process.env.MONGODB_URL
 mongoose.connect(mongoUrl)
 
 app.use(cors())
 app.use(express.json())
+app.use(middleware.requestLogger)
 
 app.use('/api/blogs', blogsRouter)
 app.use('/api/users', userRouter)
+app.use('/api/login', loginRouter)
+
+app.use(middleware.unknownEndpoint)
+app.use(middleware.errorHandler)
 
 
 module.exports = app
