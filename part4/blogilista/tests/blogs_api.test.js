@@ -1,21 +1,18 @@
 const mongoose = require('mongoose')
 const supertest = require('supertest')
-const app = require('../app')
-
-const api = supertest(app)
-const Blog = require('../models/blog')
 const helper = require('./test_helper')
+const app = require('../app')
+const api = supertest(app)
+
+const Blog = require('../models/blog')
+
 
 beforeEach(async () => {
   await Blog.deleteMany({})
-
-  const blogObjects = helper.initialBlogs
-    .map(blog => new Blog(blog))
-  const promiseArray = blogObjects.map(blog => blog.save())
-  await Promise.all(promiseArray)
+  await Blog.insertMany(helper.initialBlogs)
 })
+describe('when there is initially some blogs saved', () => {
 
-describe('get requests', () => {
   test('are returned as json', async () => {
     await api
       .get('/api/blogs')
@@ -23,26 +20,67 @@ describe('get requests', () => {
       .expect('Content-Type', /application\/json/)
   })
 
-  test('have correct amount of blogs', async () => {
+  test('all blogs are returned', async () => {
     const res = await api.get('/api/blogs')
+    console.log('res.body', res.body)
 
     expect(res.body).toHaveLength(helper.initialBlogs.length)
   })
 
-  test('have correct identification', async () => {
-    const blogs = await helper.blogsInDb()
-    const blog = blogs[0]
+  test('a specific blog is within the returned blogs', async () => {
+    const res = await api.get('/api/blogs')
 
-    expect(blog._id).toBeDefined()
+    const title = res.body.map(r => r.title)
+    expect(title).toContain(
+      'Go To Statement Considered Harmful'
+    )
   })
 })
 
-describe('post requests', () => {
-  test('work with a valid blog', async () => {
+describe('viewing a specific blog', () => {
+
+  test('succeeds with a valid id', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+
+    const blogToView = blogsAtStart[0]
+
+    const resultBlog = await api
+      .get(`/api/blogs/${blogToView.id}`)
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+
+    console.log('resultBlog', resultBlog.body)
+    console.log('blogToView', blogToView)
+
+    expect(resultBlog.body).toEqual(blogToView)
+
+  })
+
+  test('fails with statuscode 404 if blog does not exist', async () => {
+    const validNonexistingId = await helper.blogsInDb()
+
+    console.log('validNonexistingId', validNonexistingId)
+
+    await api
+      .get(`/api/blogs/${validNonexistingId}`)
+      .expect(404)
+  })
+  test('fails with statuscode 400 id is invalid', async () => {
+    const invalidId = '5a3d5da59070081a82a3445'
+
+    await api
+      .get(`/api/blogs/${invalidId}`)
+      .expect(400)
+  })
+})
+
+describe('addition of a new blog', () => {
+  test('succeeds with valid data', async () => {
     const newBlog = {
-      title: 'React patterns',
-      author: 'Michael Chan',
-      url: 'https://reactpatterns.com/',
+      title: 'title',
+      author: 'author',
+      url: 'url',
+      userId: '64dcc235eddcedf1b01e7f16'
     }
 
     await api
@@ -50,30 +88,48 @@ describe('post requests', () => {
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
-  
+
     const blogsAtEnd = await helper.blogsInDb()
     expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length + 1)
 
-    const titles = blogsAtEnd.map(n => n.title)
-
+    const titles = blogsAtEnd.map(b => b.title)
     expect(titles).toContain(
       'React patterns'
     )
   })
-})
 
-describe('delete requests', () => {
-  test('delete the specified blog', async () => {
-    const blogs = await helper.blogsInDb()
-    const firstBlogId = blogs[0]._id
+  test('fails with statuscode 400 if data invalid', async () => {
+    const newBlog = {
+      title: 'invalid blog'
+    }
 
     await api
-      .delete(`/api/blogs/${firstBlogId}`)
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(400)
+
+    const blogsAtEnd = await helper.blogsInDb()
+
+    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
+  })
+})
+
+describe('deletion of a blog', () => {
+  test('succeeds with a status code 204 if id is valid', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+    const blogToDelete = blogsAtStart[0]
+
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
       .expect(204)
 
-    const blogsAfter = await helper.blogsInDb()
+    const blogsAtEnd = await helper.blogsInDb()
 
-    expect(blogsAfter).toHaveLength(blogs.length - 1)
+    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length - 1)
+
+    const titles = blogsAtEnd.map(r => r.title)
+
+    expect(titles).not.toContain(blogToDelete.title)
   })
 })
 
@@ -82,7 +138,7 @@ describe('put requests', () => {
     const blogs = await helper.blogsInDb()
     const firstBlog = blogs[0]
 
-    const updatedBlog = {...firstBlog, title: 'test'}
+    const updatedBlog = { ...firstBlog, title: 'test' }
 
     await api
       .put(`/api/blogs/${firstBlog._id}`)
@@ -90,7 +146,7 @@ describe('put requests', () => {
       .expect(201)
       .expect('Content-Type', /application\/json/)
 
-    const blogsAfter = await helper.blogsInDb() 
+    const blogsAfter = await helper.blogsInDb()
     console.log(blogsAfter)
     expect(blogsAfter[0].title).toBe('test')
   })
