@@ -140,8 +140,9 @@ describe('put requests', () => {
 
     const updatedBlog = { ...firstBlog, title: 'test' }
 
+    console.log('firstBlog', firstBlog.id)
     await api
-      .put(`/api/blogs/${firstBlog._id}`)
+      .put(`/api/blogs/${firstBlog.id}`)
       .send(updatedBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
