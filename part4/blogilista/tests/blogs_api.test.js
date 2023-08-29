@@ -22,7 +22,7 @@ describe('when there is initially some blogs saved', () => {
 
   test('all blogs are returned', async () => {
     const res = await api.get('/api/blogs')
-    console.log('res.body', res.body)
+    // console.log('res.body', res.body)
 
     expect(res.body).toHaveLength(helper.initialBlogs.length)
   })
@@ -49,17 +49,17 @@ describe('viewing a specific blog', () => {
       .expect(200)
       .expect('Content-Type', /application\/json/)
 
-    console.log('resultBlog', resultBlog.body)
-    console.log('blogToView', blogToView)
+    // console.log('resultBlog', resultBlog.body)
+    // console.log('blogToView', blogToView)
 
     expect(resultBlog.body).toEqual(blogToView)
 
   })
 
   test('fails with statuscode 404 if blog does not exist', async () => {
-    const validNonexistingId = await helper.blogsInDb()
+    const validNonexistingId = await helper.nonExistingId()
 
-    console.log('validNonexistingId', validNonexistingId)
+    // console.log('validNonexistingId', validNonexistingId)
 
     await api
       .get(`/api/blogs/${validNonexistingId}`)
@@ -72,6 +72,13 @@ describe('viewing a specific blog', () => {
       .get(`/api/blogs/${invalidId}`)
       .expect(400)
   })
+
+  test('blogs have an id', async () => {
+    const blogs = await helper.blogsInDb()
+    const firstblog = blogs[0]
+    console.log('firstblog', firstblog)
+    expect(firstblog.id).toBeDefined()
+  })
 })
 
 describe('addition of a new blog', () => {
@@ -80,7 +87,7 @@ describe('addition of a new blog', () => {
       title: 'title',
       author: 'author',
       url: 'url',
-      userId: '64dcc235eddcedf1b01e7f16'
+      user: '64dcc235eddcedf1b01e7f16'
     }
 
     await api
@@ -112,6 +119,26 @@ describe('addition of a new blog', () => {
 
     expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
   })
+
+  test('has 0 likes if not defined', async () => {
+
+    const newBlog = {
+      title: 'title',
+      author: 'author',
+      url: 'url',
+      user: '64dcc235eddcedf1b01e7f16'
+    }
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    const blogsAtEnd = await helper.blogsInDb()
+    expect(blogsAtEnd.filter(blog => blog.title === 'title').likes).toBe(0)
+  })
+
 })
 
 describe('deletion of a blog', () => {
@@ -119,8 +146,13 @@ describe('deletion of a blog', () => {
     const blogsAtStart = await helper.blogsInDb()
     const blogToDelete = blogsAtStart[0]
 
+    const token = await api
+      .post('/api/login')
+      .send({ username: 'root', password: 'sekret' })
+
     await api
       .delete(`/api/blogs/${blogToDelete.id}`)
+      .set('Authorization', `Bearer ${token}`)
       .expect(204)
 
     const blogsAtEnd = await helper.blogsInDb()
@@ -140,7 +172,7 @@ describe('put requests', () => {
 
     const updatedBlog = { ...firstBlog, title: 'test' }
 
-    console.log('firstBlog', firstBlog.id)
+    // console.log('firstBlog', firstBlog.id)
     await api
       .put(`/api/blogs/${firstBlog.id}`)
       .send(updatedBlog)
@@ -148,7 +180,7 @@ describe('put requests', () => {
       .expect('Content-Type', /application\/json/)
 
     const blogsAfter = await helper.blogsInDb()
-    console.log(blogsAfter)
+    // console.log(blogsAfter)
     expect(blogsAfter[0].title).toBe('test')
   })
 })

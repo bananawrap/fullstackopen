@@ -79,6 +79,27 @@ describe('when there is initially one user at db', () => {
     const usersAtEnd = await helper.usersInDb()
     expect(usersAtEnd).toHaveLength(usersAtStart.length)
   })
+
+  test('creation fails with proper statuscode and message if username is too short', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'ro',
+      name: 'Superuser',
+      password: '1234'
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    expect(result.body.error).toContain('User validation failed')
+
+    const usersAtEnd = await helper.usersInDb()
+    expect(usersAtEnd).toHaveLength(usersAtStart.length)
+  })
 })
 
 afterAll(async () => {
