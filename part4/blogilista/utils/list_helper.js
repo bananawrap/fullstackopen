@@ -1,4 +1,4 @@
-const _ = require("lodash")
+const _ = require('lodash')
 const dummy = (blogs) => {
   return 1
 }
@@ -13,23 +13,23 @@ const favoriteBlog = (blogs) => blogs.sort((a, b) => b.likes - a.likes)[0]
 
 
 const mostBlogs = (blogs) => {
-  const authors = _.countBy(blogs, "author")
+  const authors = _.countBy(blogs, 'author')
   const authorWithMostBlogs = Object.entries(authors)
     .reduce(
       (acc, [author, blogs]) =>
         blogs > acc.blogs ? { author, blogs } : acc,
-      { author: "", blogs: 0 }
+      { author: '', blogs: 0 }
     )
   return authorWithMostBlogs
 }
 
 const mostLikes = (blogs) => {
-  const authors = _.countBy(blogs, "author")
+  const authors = _.countBy(blogs, 'author')
   const authorWithMostLikes = Object.entries(authors)
     .reduce(
       (acc, [author, likes]) =>
         blogs > acc.likes ? { author, likes } : acc,
-      { author: "", likes: 0 }
+      { author: '', likes: 0 }
     )
   return authorWithMostLikes
 }
