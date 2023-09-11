@@ -3,14 +3,29 @@ import Blog from './components/Blog'
 import blogService from './services/blogs'
 import LoginForm from './components/login'
 
-const BlogCreator = ({ submitHandler, newTitle, newAuthor, newUrl }) => {
+const BlogForm = ({ submitHandler }) => {
+  const [newTitle, setNewTitle] = useState('')
+  const [newAuthor, setNewAuthor] = useState('')
+  const [newUrl, setNewUrl] = useState('')
   return (
     <div>
       <form onSubmit={submitHandler}>
         <div>
           <label>
             title:
-            <input value={newTitle} onChange='' />
+            <input value={newTitle} onChange={({ target }) => setNewTitle(target.value)} />
+          </label>
+        </div>
+        <div>
+          <label>
+            Author:
+            <input value={newAuthor} onChange={({ target }) => setNewAuthor(target.value)} />
+          </label>
+        </div>
+        <div>
+          <label>
+            Url:
+            <input value={newUrl} onChange={({ target }) => setNewUrl(target.value)} />
           </label>
         </div>
       </form>
@@ -21,9 +36,6 @@ const BlogCreator = ({ submitHandler, newTitle, newAuthor, newUrl }) => {
 const App = () => {
   const [blogs, setBlogs] = useState([])
   const [user, setUser] = useState(null)
-  const [newTitle, setNewTitle] = useState('')
-  const [newAuthor, setNewAuthor] = useState('')
-  const [newUrl, setNewUrl] = useState('')
 
   useEffect(() => {
     blogService.getAll().then(blogs =>
