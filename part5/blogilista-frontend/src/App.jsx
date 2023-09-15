@@ -1,55 +1,41 @@
 import { useState, useEffect } from 'react'
 import Blog from './components/Blog'
 import blogService from './services/blogs'
-import LoginForm from './components/login'
-
-const BlogForm = ({ submitHandler }) => {
-  const [newTitle, setNewTitle] = useState('')
-  const [newAuthor, setNewAuthor] = useState('')
-  const [newUrl, setNewUrl] = useState('')
-  return (
-    <div>
-      <form onSubmit={submitHandler}>
-        <div>
-          <label>
-            title:
-            <input value={newTitle} onChange={({ target }) => setNewTitle(target.value)} />
-          </label>
-        </div>
-        <div>
-          <label>
-            Author:
-            <input value={newAuthor} onChange={({ target }) => setNewAuthor(target.value)} />
-          </label>
-        </div>
-        <div>
-          <label>
-            Url:
-            <input value={newUrl} onChange={({ target }) => setNewUrl(target.value)} />
-          </label>
-        </div>
-      </form>
-    </div>
-  )
-}
+import loginService from './services/login'
+import LoginForm from './components/Login'
+import Notification from './components/Notification'
+import BlogForm from './components/BlogForm'
 
 const App = () => {
   const [blogs, setBlogs] = useState([])
   const [user, setUser] = useState(null)
-
+  const [notification, setNotification] = useState(['', ''])
+  const [loginVisible, setLoginVisible] = useState(true)
+  const [createBlogVisible, setCreateBlogVisible] = useState(false)
+  const [updateTrigger, triggerUpdate] = useState(0)
   useEffect(() => {
-    blogService.getAll().then(blogs =>
-      setBlogs(blogs)
+    blogService.getAll().then(blogs => {
+      console.log(blogs)
+      setBlogs(blogs.sort((a, b) => b.likes - a.likes))
+    }
     )
-  }, [])
+  }, [updateTrigger])
 
   useEffect(() => {
     const loggedUserJson = window.localStorage.getItem('user')
     if (loggedUserJson) {
       const user = JSON.parse(loggedUserJson)
-      setUser(user)
+      loginService
+        .verify(user.token)
+        .then(response => {
+          setUser(user)
+          setLoginVisible(false)
+        })
+        .catch(exception => {
+          setUser(null)
+        })
     }
-  }, [])
+  }, [updateTrigger])
 
 
 
@@ -59,11 +45,43 @@ const App = () => {
     window.localStorage.removeItem('user')
   }
 
-  if (user === null) {
+  const handleSubmit = (title, author, url) => {
+    event.preventDefault()
+    const newObject = {
+      title: title,
+      author: author,
+      url: url,
+    }
+    blogService
+      .newBlog(newObject, user.token)
+      .then(response => {
+        setBlogs(blogs.concat(response))
+        setNotification([`a new blog ${title} by ${author} added`, 'success'])
+        setCreateBlogVisible(false)
+        triggerUpdate(Math.random())
+        setTimeout(() => {
+          setNotification(['', ''])
+        }, 3000)
+      })
+      .catch(error => {
+        setNotification([error.response.data.error, 'error'])
+        setTimeout(() => {
+          setNotification(['', ''])
+        }, 4000)
+      })
+    console.log()
+  }
+
+  const handleUpdate = async (id, blog) => {
+    await blogService.updateBlog(id, blog)
+    triggerUpdate(Math.random())
+  }
+
+  if (loginVisible) {
     return (
       <div>
         <h2>Log in to application</h2>
-        <LoginForm setUser={setUser} />
+        <LoginForm setUser={setUser} notification={notification} setNotification={setNotification} setLoginVisible={setLoginVisible} />
       </div>
     )
   }
@@ -71,11 +89,31 @@ const App = () => {
   return (
     <div>
       <h2>blogs</h2>
-      <p>{user.name} logged in</p>
-      <button type='button' onClick={handleLogout}>logout</button>
-      {blogs.map(blog =>
-        <Blog key={blog.id} blog={blog} />
-      )}
+      <Notification message={notification[0]} msgClass={notification[1]} />
+      {
+        user &&
+        <div>
+          <p>{user.name} logged in</p>
+          <button type='button' onClick={handleLogout}>logout</button>
+        </div>
+      }
+      {!user && <button type='button' onClick={() => setLoginVisible(true)} >login</button>}
+      {
+        user && createBlogVisible &&
+        <BlogForm submitHandler={handleSubmit} setCreateBlogVisible={setCreateBlogVisible} />
+      }
+      {
+        user && !createBlogVisible
+        && <button
+          id='new-blog'
+          type='button'
+          onClick={() => setCreateBlogVisible(true)}>
+          new blog
+        </button>
+      }
+      <ul className='blogs'>
+        {blogs.map(blog => <Blog key={blog.id} blog={blog} user={user} triggerUpdate={triggerUpdate} handleUpdate={handleUpdate} />)}
+      </ul>
     </div>
   )
 }

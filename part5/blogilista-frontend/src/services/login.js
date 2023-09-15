@@ -6,4 +6,13 @@ const login = async credentials => {
   return response.data
 }
 
-export default { login }
+const verify = async (token) => {
+  const config = {
+    headers: { Authorization: `Bearer ${token}` }
+  }
+
+  const response = await axios.post(`${baseUrl}/verify`, '', config)
+  return response.data
+}
+
+export default { login, verify }
